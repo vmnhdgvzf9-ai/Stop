@@ -93,6 +93,20 @@
             font-size: 12px;
             color: #555;
         }
+        .loader {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #333;
+            border-top: 3px solid #1e90ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -130,11 +144,12 @@
     let faceDetected = false;
     let rickrollPlayed = false;
 
+    // === ЗАГРУЗКА МОДЕЛИ (НОВОЕ ЗЕРКАЛО) ===
     async function loadModels() {
-        status.textContent = '⏳ Загрузка модели распознавания лиц...';
+        status.innerHTML = '⏳ Загрузка модели распознавания лиц...<div class="loader"></div>';
         try {
             await faceapi.nets.tinyFaceDetector.loadFromUri(
-                'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'
+                'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/'
             );
             status.textContent = '✅ Модель готова. Разрешите доступ к камере.';
             startCam();
@@ -161,26 +176,30 @@
         setInterval(async () => {
             if (rickrollPlayed) return;
 
-            const detections = await faceapi.detectAllFaces(
-                video,
-                new faceapi.TinyFaceDetectorOptions()
-            );
+            try {
+                const detections = await faceapi.detectAllFaces(
+                    video,
+                    new faceapi.TinyFaceDetectorOptions()
+                );
 
-            ctx.clearRect(0, 0, overlay.width, overlay.height);
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-            if (detections.length > 0) {
-                faceDetected = true;
-                sendBtn.disabled = false;
-                status.textContent = '✅ Лицо обнаружено! Нажмите "Отправить"';
+                if (detections.length > 0) {
+                    faceDetected = true;
+                    sendBtn.disabled = false;
+                    status.textContent = '✅ Лицо обнаружено! Нажмите "Отправить"';
 
-                const box = detections[0].box;
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(box.x, box.y, box.width, box.height);
-            } else {
-                faceDetected = false;
-                sendBtn.disabled = true;
-                status.textContent = '❌ Лицо не обнаружено. Покажите лицо чётко.';
+                    const box = detections[0].box;
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                } else {
+                    faceDetected = false;
+                    sendBtn.disabled = true;
+                    status.textContent = '❌ Лицо не обнаружено. Покажите лицо чётко.';
+                }
+            } catch (e) {
+                // если произошла ошибка — игнорируем, чтобы не сломать цикл
             }
         }, 400);
     }
@@ -236,7 +255,6 @@
         rickroll.muted = false;
         rickroll.volume = 1.0;
         rickroll.play().catch(() => {
-            // Если автозапуск запрещён — показываем кнопку "Нажать для просмотра"
             status.textContent = '🎵 Нажмите на видео, чтобы запустить';
         });
 
